@@ -1,7 +1,10 @@
 package com.example.octofit.features.metadata.ui
 
 import android.app.Application
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.ContextWrapper
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
@@ -51,6 +54,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.octofit.features.ads.AdMobBanner
+import com.example.octofit.features.ads.rememberInterstitialAdController
 import com.example.octofit.features.metadata.MetadataSectionUiState
 import com.example.octofit.features.metadata.MetadataUiState
 import com.example.octofit.features.metadata.MetadataViewModel
@@ -67,7 +72,9 @@ fun MetadataScreen(
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = context.findActivity()
     val clipboardManager = LocalClipboardManager.current
+    val interstitialController = rememberInterstitialAdController()
     val picker = rememberLauncherForActivityResult(OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             viewModel.onImageSelected(uri)
@@ -84,6 +91,7 @@ fun MetadataScreen(
         onCopyAllMetadata = {
             val payload = viewModel.onCopyAllMetadata()
             clipboardManager.copyToClipboard(payload)
+            activity?.let { interstitialController.showIfReady(it) }
         },
         onShareAllMetadata = {
             val payload = viewModel.onShareAllMetadata()
@@ -119,6 +127,11 @@ private fun MetadataContent(
                         Icon(imageVector = Icons.Default.Share, contentDescription = "Share metadata")
                     }
                 },
+            )
+        },
+        bottomBar = {
+            AdMobBanner(
+                modifier = Modifier.fillMaxWidth(),
             )
         },
     ) { padding ->
@@ -352,4 +365,15 @@ private fun String.toShareIntent(): Intent {
         putExtra(Intent.EXTRA_TEXT, this@toShareIntent)
     }
     return Intent.createChooser(intent, "Share metadata")
+}
+
+private fun Context.findActivity(): Activity? {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is Activity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    return null
 }
