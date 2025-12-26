@@ -55,6 +55,7 @@ class MetadataExtractor(
                 exif.getAttribute(tag)?.let { value ->
                     if (value.isNotBlank()) {
                         entries += MetadataEntry(
+                            id = buildEntryId(tag, value, "EXIF:$tag"),
                             key = tag,
                             value = value,
                             sourceTag = "EXIF:$tag",
@@ -101,6 +102,7 @@ class MetadataExtractor(
             val value = safeTagValue(tag)
             if (!value.isNullOrBlank()) {
                 entries += MetadataEntry(
+                    id = buildEntryId(tag.tagName, value, directoryName),
                     key = tag.tagName,
                     value = value,
                     sourceTag = directoryName,
@@ -138,5 +140,9 @@ class MetadataExtractor(
             ExifInterface.TAG_GPS_LONGITUDE,
             ExifInterface.TAG_GPS_ALTITUDE,
         )
+    }
+
+    private fun buildEntryId(key: String, value: String, sourceTag: String): String {
+        return "$sourceTag|$key|$value"
     }
 }
