@@ -16,6 +16,9 @@ node_modules
 
 # production
 /build
+/.gradle
+**/build
+local.properties
 
 # misc
 .DS_Store
