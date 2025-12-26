@@ -12,6 +12,7 @@ data class MetadataUiState(
     val searchQuery: String,
     val sections: List<MetadataSectionUiState>,
     val expandedSectionIds: Set<String>,
+    val redactedEntryIds: Set<String>,
 ) : UiState
 
 @Immutable
