@@ -24,7 +24,6 @@ class MetadataViewModel(
         searchQuery = "",
         sections = emptyList(),
         expandedSectionIds = emptySet(),
-        redactedEntryIds = emptySet(),
     ),
 ) {
     private val extractor = MetadataExtractor(application.applicationContext)
@@ -38,7 +37,7 @@ class MetadataViewModel(
         loadJob = viewModelScope.launch {
             try {
                 val entries = extractor.extract(uri)
-                updateState { buildState(entries = entries, redactedEntryIds = emptySet()) }
+                updateState { buildState(entries = entries) }
             } catch (error: Exception) {
                 updateState {
                     copy(
@@ -71,19 +70,9 @@ class MetadataViewModel(
 
     fun onShareAllMetadata(): String = formatAsJson(state.value.metadataEntries)
 
-    fun onToggleRedaction(entryId: String) {
-        updateState {
-            val updated = redactedEntryIds.toMutableSet().apply {
-                if (contains(entryId)) remove(entryId) else add(entryId)
-            }
-            copy(redactedEntryIds = updated)
-        }
-    }
-
     private fun MetadataUiState.buildState(
         entries: List<MetadataEntry> = metadataEntries,
         searchQuery: String = this.searchQuery,
-        redactedEntryIds: Set<String> = this.redactedEntryIds,
     ): MetadataUiState {
         val trimmedQuery = searchQuery.trim()
         val filteredEntries = if (trimmedQuery.isBlank()) {
@@ -105,20 +94,17 @@ class MetadataViewModel(
                 isExpanded = expandedSectionIds.contains(tag),
             )
         }
-        val validRedactions = redactedEntryIds.intersect(entries.map { it.id }.toSet())
         return copy(
             isLoading = false,
             metadataEntries = entries,
             searchQuery = searchQuery,
             sections = sections,
-            redactedEntryIds = validRedactions,
         )
     }
 
     private fun formatAsJson(entries: List<MetadataEntry>): String {
         val payload = JSONArray()
-        val redactions = state.value.redactedEntryIds
-        entries.filterNot { redactions.contains(it.id) }.forEach { entry ->
+        entries.forEach { entry ->
             val item = JSONObject()
             item.put("key", entry.key)
             item.put("value", entry.value)

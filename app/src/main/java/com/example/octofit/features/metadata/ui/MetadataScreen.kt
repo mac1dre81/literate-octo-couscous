@@ -79,7 +79,6 @@ fun MetadataScreen(
         onPickImage = { picker.launch(arrayOf("image/*")) },
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onToggleSection = viewModel::onToggleSection,
-        onToggleRedaction = viewModel::onToggleRedaction,
         onDismissError = viewModel::onDismissError,
         onCopyAllMetadata = {
             val payload = viewModel.onCopyAllMetadata()
@@ -99,23 +98,19 @@ private fun MetadataContent(
     onPickImage: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onToggleSection: (String) -> Unit,
-    onToggleRedaction: (String) -> Unit,
     onDismissError: () -> Unit,
     onCopyAllMetadata: () -> Unit,
     onShareAllMetadata: () -> Unit,
 ) {
-    val hasSharableEntries = uiState.metadataEntries.any { entry ->
-        entry.id !in uiState.redactedEntryIds
-    }
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "Image Metadata") },
                 actions = {
-                    IconButton(onClick = onCopyAllMetadata, enabled = hasSharableEntries) {
+                    IconButton(onClick = onCopyAllMetadata, enabled = uiState.metadataEntries.isNotEmpty()) {
                         Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy metadata")
                     }
-                    IconButton(onClick = onShareAllMetadata, enabled = hasSharableEntries) {
+                    IconButton(onClick = onShareAllMetadata, enabled = uiState.metadataEntries.isNotEmpty()) {
                         Icon(imageVector = Icons.Default.Share, contentDescription = "Share metadata")
                     }
                 },
@@ -156,32 +151,6 @@ private fun MetadataContent(
                 }
             }
 
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Privacy notice",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = "• Images are selected using the system file picker (Storage Access Framework only).",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = "• Metadata is extracted on-device and stays local unless you copy or share it.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = "• Review entries for sensitive data (GPS, device identifiers) and redact before sharing.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchQueryChange,
@@ -195,8 +164,6 @@ private fun MetadataContent(
             MetadataSections(
                 sections = uiState.sections,
                 onToggleSection = onToggleSection,
-                redactedEntryIds = uiState.redactedEntryIds,
-                onToggleRedaction = onToggleRedaction,
                 emptyStateText = if (uiState.metadataEntries.isEmpty()) {
                     "No metadata loaded yet."
                 } else {
@@ -224,8 +191,6 @@ private fun MetadataContent(
 private fun MetadataSections(
     sections: List<MetadataSectionUiState>,
     onToggleSection: (String) -> Unit,
-    redactedEntryIds: Set<String>,
-    onToggleRedaction: (String) -> Unit,
     emptyStateText: String,
 ) {
     if (sections.isEmpty()) {
@@ -260,11 +225,7 @@ private fun MetadataSections(
                     )
                     if (section.isExpanded) {
                         Divider()
-                        SectionEntries(
-                            entries = section.entries,
-                            redactedEntryIds = redactedEntryIds,
-                            onToggleRedaction = onToggleRedaction,
-                        )
+                        SectionEntries(entries = section.entries)
                     }
                 }
             }
@@ -305,8 +266,6 @@ private fun SectionHeader(
 @Composable
 private fun SectionEntries(
     entries: List<MetadataEntry>,
-    redactedEntryIds: Set<String>,
-    onToggleRedaction: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -315,28 +274,16 @@ private fun SectionEntries(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         entries.forEach { entry ->
-            val isRedacted = redactedEntryIds.contains(entry.id)
             Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = entry.key,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                        Text(
-                            text = if (isRedacted) "Redacted" else entry.value,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    TextButton(onClick = { onToggleRedaction(entry.id) }) {
-                        Text(text = if (isRedacted) "Restore" else "Redact")
-                    }
-                }
+                Text(
+                    text = entry.key,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text(
+                    text = entry.value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
