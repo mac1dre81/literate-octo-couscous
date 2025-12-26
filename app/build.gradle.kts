@@ -16,6 +16,34 @@ android {
         versionName = "1.0.0"
     }
 
+    buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "ADMOB_BANNER_AD_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/6300978111\"",
+            )
+            buildConfigField(
+                "String",
+                "ADMOB_INTERSTITIAL_AD_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/1033173712\"",
+            )
+            resValue(
+                "string",
+                "admob_app_id",
+                "ca-app-pub-3940256099942544~3347511713",
+            )
+        }
+        release {
+            val admobBannerId = providers.gradleProperty("ADMOB_BANNER_AD_UNIT_ID").orNull.orEmpty()
+            val admobInterstitialId = providers.gradleProperty("ADMOB_INTERSTITIAL_AD_UNIT_ID").orNull.orEmpty()
+            val admobAppId = providers.gradleProperty("ADMOB_APP_ID").orNull.orEmpty()
+            buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$admobBannerId\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"$admobInterstitialId\"")
+            resValue("string", "admob_app_id", admobAppId)
+        }
+    }
+
     buildFeatures {
         compose = true
     }
@@ -38,6 +66,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.exifinterface)
     implementation(libs.metadata.extractor)
+    implementation(libs.play.services.ads)
 
     implementation(libs.kotlinx.coroutines.android)
 
